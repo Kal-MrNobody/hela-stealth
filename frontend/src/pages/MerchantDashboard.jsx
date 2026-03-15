@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Contract, parseEther, formatEther } from "ethers";
 import { QRCode } from "react-qr-code";
-import { CONTRACTS, REGISTRY_ABI, ROUTER_ABI, HUSD_ABI, FEE_ABI, API_BASE } from "../config";
+import { CONTRACTS, REGISTRY_ABI, ROUTER_ABI, HUSD_ABI, FEE_ABI, POOL_ABI, API_BASE } from "../config";
 
 const TIERS = [
   { id: "std", name: "Standard", splits: 1, range: "N/A", security: 30, gas: "Low", icon: "⚡" },

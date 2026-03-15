@@ -65,5 +65,6 @@ export const VAULT_ABI = [
 export const POOL_ABI = [
   "function deposits(bytes32) view returns (uint256)",
   "function recordDeposit(bytes32 invoiceId, uint256 amount)",
-  "function withdraw(bytes32 invoiceId, address merchant)",
+  "function withdraw(bytes32 invoiceId) external",
+  "function getDeposit(bytes32 invoiceId) view returns (address merchant, uint256 amount, uint256 blockNumber, bool claimed)",
 ];
