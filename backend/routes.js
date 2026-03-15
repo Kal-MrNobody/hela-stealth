@@ -102,12 +102,12 @@ module.exports = function createRoutes(getContracts, invoiceStore, provider, wal
   // ── GET /merchant/invoices/:address ───────────────────
   router.get("/merchant/invoices/:address", async (req, res) => {
     try {
-      const { router: payRouter } = getContracts();
+      const { router: payRouter, pool: poolContract } = getContracts();
       const address = req.params.address;
       const count = await payRouter.getMerchantInvoiceCount(address);
       const invoices = [];
       const statusMap = ["active", "paid", "claimed", "cancelled"];
-
+ 
       const n = Number(count);
       for (let i = n - 1; i >= 0; i--) {
         const id = await payRouter.getMerchantInvoiceAt(address, i);
@@ -115,6 +115,21 @@ module.exports = function createRoutes(getContracts, invoiceStore, provider, wal
         const lookupKey = id.toLowerCase();
         const local = invoiceStore.get(lookupKey);
         
+        let currentStatus = statusMap[Number(inv.status)];
+        
+        // RECONCILIATION: If router says "paid", check the pool for "claimed"
+        if (currentStatus === "paid" && poolContract) {
+          try {
+             // getDeposit returns [merchant, amount, blockNumber, claimed]
+             const dep = await poolContract.getDeposit(id);
+             if (dep && dep.claimed) {
+               currentStatus = "claimed";
+             }
+          } catch (e) {
+             console.warn(`Pool status check failed for ${id}:`, e.message);
+          }
+        }
+ 
         console.log(`History lookup for link ${lookupKey} -> Found: ${!!local}`);
         if (!local) {
           console.log(`Current Map keys:`, Array.from(invoiceStore.keys()));
@@ -123,7 +138,7 @@ module.exports = function createRoutes(getContracts, invoiceStore, provider, wal
         invoices.push({
           id,
           amount: ethers.formatEther(inv.amount),
-          status: statusMap[Number(inv.status)],
+          status: currentStatus,
           description: local ? local.description : "",
           payer: inv.payer === ethers.ZeroAddress ? null : inv.payer,
           createdAt: Number(inv.createdAt),
@@ -146,14 +161,14 @@ module.exports = function createRoutes(getContracts, invoiceStore, provider, wal
         return res.status(400).json({ error: "invoiceId required" });
       }
 
-      const { router: payRouter } = getContracts();
-      if (!payRouter) {
-        return res.status(500).json({ error: "PaymentRouter contract not configured" });
+      const { pool } = getContracts();
+      if (!pool) {
+        return res.status(500).json({ error: "PrivacyPool contract not configured" });
       }
-
-      // 1. Call payRouter.claimInvoice(invoiceId)
-      // This handles both the withdrawal and the on-chain state update
-      const tx = await payRouter.claimInvoice(invoiceId);
+ 
+      // 1. Call privacyPool.withdraw(invoiceId)
+      // Note: In this demo, the backend wallet acts as the merchant or pays gas.
+      const tx = await pool.withdraw(invoiceId);
 
       // 2. Wait for transaction confirmation
       const receipt = await tx.wait();

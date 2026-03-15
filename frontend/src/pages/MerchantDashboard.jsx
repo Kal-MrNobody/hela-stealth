@@ -187,11 +187,30 @@ export default function MerchantDashboard({ wallet }) {
       const resp = await fetch(`${API_BASE}/merchant/invoices/${account}`);
       const data = await resp.json();
       if (data.invoices) {
-        // Merge with local descriptions just in case backend is stateless
-        const enriched = data.invoices.map(inv => ({
-          ...inv,
-          description: inv.description || getLocalDescription(inv.id) || "—"
+        // Step 1: Initialize pool contract for status check
+        const poolContract = new Contract(CONTRACTS.POOL, POOL_ABI, provider);
+ 
+        // Step 2: Merge with local descriptions and check Pool for "Claimed" status
+        const enriched = await Promise.all(data.invoices.map(async (inv) => {
+          let currentStatus = inv.status;
+          
+          // If router says "paid", double-check the pool for "claimed"
+          if (currentStatus === "paid") {
+            try {
+              const dep = await poolContract.getDeposit(inv.id);
+              if (dep.claimed) currentStatus = "claimed";
+            } catch (e) {
+              console.warn("Could not check pool status for", inv.id);
+            }
+          }
+ 
+          return {
+            ...inv,
+            status: currentStatus,
+            description: inv.description || getLocalDescription(inv.id) || "—"
+          };
         }));
+        
         setInvoices(enriched);
       }
     } catch (err) {
@@ -220,9 +239,9 @@ export default function MerchantDashboard({ wallet }) {
     try {
       showToast("⏳ Finalizing Privacy withdrawal...", "info");
 
-      const router = new Contract(CONTRACTS.ROUTER, ROUTER_ABI, signer);
-
-      const tx = await router.claimInvoice(invoiceId);
+      const pool = new Contract(CONTRACTS.POOL, POOL_ABI, signer);
+ 
+      const tx = await pool.withdraw(invoiceId);
       const receipt = await tx.wait();
 
       setToast({
