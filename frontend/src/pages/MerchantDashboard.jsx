@@ -25,14 +25,16 @@ export default function MerchantDashboard({ wallet }) {
 
   // Check if merchant is registered
   useEffect(() => {
-    if (!account || !provider) return;
+    if (!account || !provider || !CONTRACTS.REGISTRY) return;
     (async () => {
       try {
         const reg = new Contract(CONTRACTS.REGISTRY, REGISTRY_ABI, provider);
         const is = await reg.isMerchant(account);
         setRegistered(is);
         if (is) loadInvoices();
-      } catch {}
+      } catch (err) {
+        console.error("Registry check failed:", err);
+      }
     })();
   }, [account, provider]);
 
@@ -43,7 +45,7 @@ export default function MerchantDashboard({ wallet }) {
 
   // Register as merchant
   const handleRegister = async () => {
-    if (!signer) return;
+    if (!signer || !CONTRACTS.REGISTRY) return;
     setLoading(true);
     try {
       const reg = new Contract(CONTRACTS.REGISTRY, REGISTRY_ABI, signer);
@@ -60,7 +62,10 @@ export default function MerchantDashboard({ wallet }) {
 
   // Create invoice
   const handleCreateInvoice = async () => {
-    if (!signer || !amount) return;
+    if (!signer || !amount || !CONTRACTS.ROUTER || !CONTRACTS.HUSD || !CONTRACTS.FEE_MANAGER) {
+      showToast("❌ Missing contract configuration!", "error");
+      return;
+    }
     setLoading(true);
     try {
       const router = new Contract(CONTRACTS.ROUTER, ROUTER_ABI, signer);
