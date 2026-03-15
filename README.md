@@ -1,151 +1,72 @@
-# 🛡️ StealthCheckout
+# 🛡️ HeLa Stealth
 
 **Privacy-preserving stablecoin payment gateway on HeLa blockchain.**
 
-Merchants generate one-time stealth payment addresses for every invoice, so their wallet's transaction history stays private on public block explorers.
+HeLa Stealth allows merchants to accept stablecoin payments with complete privacy. By generating one-time stealth payment addresses for every invoice, a merchant's main wallet transaction history remains shielded on public block explorers.
+
+![HeLa Landing Page](C:\Users\risha\.gemini\antigravity\brain\3dda39d3-ba76-43d0-8223-e95083e6a228\hela_landing_page_final_1773542514094.png)
 
 ---
 
-## Architecture
+## Live Deployment (HeLa Testnet)
 
-```
-┌──────────────┐     ┌──────────────┐     ┌──────────────────┐
-│  Customer    │────▶│  Payment     │────▶│  PaymentRouter   │
-│  (Browser)   │     │  Page (React)│     │  (Smart Contract)│
-└──────────────┘     └──────────────┘     └────────┬─────────┘
-                                                   │
-┌──────────────┐     ┌──────────────┐     ┌────────▼─────────┐
-│  Merchant    │────▶│  Dashboard   │────▶│  StealthRegistry │
-│  (Browser)   │     │  (React)     │     │  (Smart Contract)│
-└──────────────┘     └──────────────┘     └──────────────────┘
-                                          ┌──────────────────┐
-                     ┌──────────────┐     │  HUSD Token      │
-                     │  Backend     │────▶│  (ERC-20)        │
-                     │  (Express)   │     └──────────────────┘
-                     └──────────────┘     ┌──────────────────┐
-                                          │  FeeManager      │
-                                          └──────────────────┘
-```
+The project is fully operational on the **HeLa Testnet**.
 
-## Payment Flow
-
-1. **Merchant registers** wallet + meta-public-key on `StealthRegistry`
-2. **Merchant creates invoice** → `PaymentRouter.createInvoice()` → unique invoice ID generated, protocol fee charged
-3. **Customer receives link** with QR code → `/pay/<invoiceId>`
-4. **Customer pays** → `PaymentRouter.payInvoice()` → HUSD routed to merchant, invoice marked as paid (burned)
-5. **Invoice is one-time** — replay and double-spend prevented
+### Smart Contracts
+| Contract | Address |
+|----------|---------|
+| **HUSD** | `0xEf3cA15C04e82b90B01AF9EccE1A0C620E74E0b3` |
+| **StealthRegistry** | `0x71741409c2F568735748D40F232Be35d43a48661` |
+| **FeeManager** | `0xEA5399958B5848eBd835F888f4310e6b7D84B0Fb` |
+| **PrivacyPool** | `0x098abE69A28b897d18E998a5F73Fc777e48fe365` |
+| **PaymentRouter** | `0x15334Ef0e00F29F5ecCb03D765982F1282B05df8` |
 
 ---
 
-## Quick Start
+## Key Features
+
+1. **HeLa Brand Alignment**: Sleek, professional UI with the HeLa teal palette and glassmorphism.
+2. **Stealth Payments**: One-time invoice IDs and stealth vaults protect user privacy.
+3. **One-Chain Privacy**: Leverages HeLa's native privacy features on a single, intelligent blockchain.
+4. **Seamless UX**: Unified "Connect Wallet" flow and high-impact hero design.
+
+![Merchant Dashboard](C:\Users\risha\.gemini\antigravity\brain\3dda39d3-ba76-43d0-8223-e95083e6a228\merchant_dashboard_final_verify_1773542852945.png)
+
+---
+
+## Quick Start (Local Development)
 
 ### Prerequisites
-
 - Node.js ≥ 18
 - MetaMask browser extension
-- HeLa testnet HLUSD (faucet: https://faucet-testnet.helachain.com)
+- HeLa testnet HLUSD
 
 ### 1. Install Dependencies
-
 ```bash
-# Root (smart contracts)
-npm install
+npm install && cd backend && npm install && cd ../frontend && npm install
+```
 
+### 2. Configure & Run
+```bash
 # Backend
-cd backend && npm install
+cd backend && cp .env.example .env && npm start
 
 # Frontend
-cd ../frontend && npm install
+cd frontend && cp .env.example .env && npm run dev
 ```
-
-### 2. Compile & Deploy Contracts
-
-```bash
-# Compile
-npx hardhat compile
-
-# Deploy to HeLa testnet
-# First set your private key:
-# $env:PRIVATE_KEY = "your_private_key_here"
-npx hardhat run scripts/deploy.js --network hela_testnet
-
-# Or deploy locally:
-npx hardhat node                         # Terminal 1
-npx hardhat run scripts/deploy.js --network localhost  # Terminal 2
-```
-
-Copy the deployed addresses from the output.
-
-### 3. Configure Backend
-
-```bash
-cd backend
-cp .env.example .env
-# Edit .env with your deployed contract addresses
-```
-
-### 4. Start Backend
-
-```bash
-cd backend
-npm start
-```
-
-### 5. Start Frontend
-
-```bash
-cd frontend
-
-# Create .env with contract addresses:
-# VITE_HUSD_ADDRESS=0x...
-# VITE_REGISTRY_ADDRESS=0x...
-# VITE_ROUTER_ADDRESS=0x...
-# VITE_FEE_MANAGER_ADDRESS=0x...
-
-npm run dev
-```
-
-Open http://localhost:5173
 
 ---
 
-## Project Structure
+## Security & Architecture
 
-```
-StealthCheckout/
-├── contracts/
-│   ├── HUSD.sol              # USD-pegged ERC-20 stablecoin
-│   ├── StealthRegistry.sol   # Merchant registration + meta keys
-│   ├── PaymentRouter.sol     # Invoice creation, payment routing
-│   └── FeeManager.sol        # Protocol fee collection
-├── scripts/
-│   └── deploy.js             # Hardhat deployment script
-├── backend/
-│   ├── server.js             # Express server + event listener
-│   ├── routes.js             # API routes
-│   └── .env.example          # Environment template
-├── frontend/
-│   └── src/
-│       ├── App.jsx           # Main app with routing
-│       ├── config.js         # Contract addresses + ABIs
-│       ├── useWallet.js      # MetaMask hook
-│       └── pages/
-│           ├── MerchantDashboard.jsx
-│           └── CustomerPayment.jsx
-├── sdk/
-│   └── merchantCheckout.js   # JS SDK for contract interactions
-├── hardhat.config.js
-└── README.md
-```
+- **One-time addresses**: Invoices are single-use, preventing linkability.
+- **Atomic Operations**: Router handles deposit and release in a single transaction.
+- **HeLa Privacy**: Built to leverage the unique privacy-preserving capabilities of the HeLa blockchain.
 
-## Smart Contracts
+---
 
-| Contract | Purpose |
-|----------|---------|
-| `HUSD` | ERC-20 stablecoin with owner-only mint and public burn |
-| `StealthRegistry` | Merchant registration with meta-public-key storage |
-| `PaymentRouter` | One-time invoice creation, payment routing, replay protection |
-| `FeeManager` | Configurable protocol fee (default 0.00402 HUSD) |
+Built for the **HeLa Hackathon** 🚀
+rotocol fee (default 0.00402 HUSD) |
 
 ## API Endpoints
 
