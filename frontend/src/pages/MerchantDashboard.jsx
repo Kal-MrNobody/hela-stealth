@@ -381,21 +381,22 @@ export default function MerchantDashboard({ wallet }) {
             </div>
             <div className="qr-container">
               <div className="qr-box">
-                <QRCode value={`${window.location.origin}/pay/${lastInvoice.id}`} size={180} />
+                <QRCode value={`${window.location.origin}/pay/${lastInvoice.id}${lastInvoice.description ? `?desc=${encodeURIComponent(lastInvoice.description)}` : ''}`} size={180} />
               </div>
               <div style={{ textAlign: "center", width: "100%" }}>
                 <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", marginBottom: "12px" }}>Share this link with your customer</p>
                 <div style={{ background: "rgba(37, 99, 235, 0.05)", padding: "12px", borderRadius: "8px", border: "1px dashed rgba(37, 99, 235, 0.3)", marginBottom: "16px" }}>
                   <p className="mono" style={{ fontSize: "0.8rem", wordBreak: "break-all", color: "var(--text-primary)" }}>
-                    {window.location.origin}/pay/{lastInvoice.id.slice(0, 16)}…
+                    {window.location.origin}/pay/{lastInvoice.id.slice(0, 16)}…{lastInvoice.description ? `?desc=${encodeURIComponent(lastInvoice.description.slice(0, 10))}…` : ''}
                   </p>
                 </div>
                 <button 
                   className="btn btn-outline btn-sm" 
                   style={{ width: "100%", marginBottom: "16px" }}
                   onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/pay/${lastInvoice.id}`);
-                    showToast("Link copied to clipboard");
+                    const url = `${window.location.origin}/pay/${lastInvoice.id}${lastInvoice.description ? `?desc=${encodeURIComponent(lastInvoice.description)}` : ''}`;
+                    navigator.clipboard.writeText(url);
+                    showToast("Link copied to clipboard (with description)");
                   }}
                 >
                   Copy Full URL

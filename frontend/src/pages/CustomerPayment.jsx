@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { Contract, formatEther, parseEther, ZeroAddress } from "ethers";
 import { QRCode } from "react-qr-code";
 import { CONTRACTS, ROUTER_ABI, HUSD_ABI } from "../config";
@@ -8,6 +8,9 @@ const STATUS_MAP = ["active", "paid", "cancelled"];
 
 export default function CustomerPayment({ wallet }) {
   const { invoiceId } = useParams();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const urlDescription = searchParams.get("desc") || "";
   const { account, signer, provider } = wallet;
 
   const [invoice, setInvoice]   = useState(null);
@@ -248,6 +251,14 @@ export default function CustomerPayment({ wallet }) {
               {invoiceId.slice(0, 18)}…
             </span>
           </div>
+          {urlDescription && (
+            <div className="info-row" style={{ borderBottomColor: "rgba(255,255,255,0.05)" }}>
+              <span className="info-label">Purpose / Desc</span>
+              <span className="info-value" style={{ color: "var(--text-primary)", fontWeight: 500 }}>
+                {urlDescription}
+              </span>
+            </div>
+          )}
           <div className="info-row" style={{ borderBottomColor: "rgba(255,255,255,0.05)" }}>
             <span className="info-label">Stealth Vault</span>
             <span className="info-value mono" style={{ fontSize: "0.8rem", color: "var(--primary)" }}>
