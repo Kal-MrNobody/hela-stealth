@@ -107,8 +107,10 @@ module.exports = function createRoutes(getContracts, invoiceStore, provider, wal
         paidAt: null,
         txHash: receipt.hash,
       };
-      invoiceStore.set(invoiceId, invoice);
+      const storeKey = invoiceId.toLowerCase();
+      invoiceStore.set(storeKey, invoice);
       if (saveStore) saveStore();
+      console.log(`Saved invoice metadata for ${storeKey} with desc: ${description}`);
 
       res.json({
         success: true,
@@ -148,7 +150,7 @@ module.exports = function createRoutes(getContracts, invoiceStore, provider, wal
       });
     } catch (err) {
       // Fallback to local store
-      const local = invoiceStore.get(req.params.id);
+      const local = invoiceStore.get(invoiceId.toLowerCase());
       if (local) return res.json(local);
       res.status(404).json({ error: "Invoice not found" });
     }
@@ -167,7 +169,14 @@ module.exports = function createRoutes(getContracts, invoiceStore, provider, wal
       for (let i = n - 1; i >= 0; i--) {
         const id = await payRouter.getMerchantInvoiceAt(address, i);
         const inv = await payRouter.getInvoice(id);
-        const local = invoiceStore.get(id);
+        const lookupKey = id.toLowerCase();
+        const local = invoiceStore.get(lookupKey);
+        
+        console.log(`History lookup for link ${lookupKey} -> Found: ${!!local}`);
+        if (!local) {
+          console.log(`Current Map keys:`, Array.from(invoiceStore.keys()));
+        }
+
         invoices.push({
           id,
           amount: ethers.formatEther(inv.amount),

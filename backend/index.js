@@ -75,7 +75,13 @@ function loadStore() {
   try {
     if (fs.existsSync(DATA_FILE)) {
       const data = fs.readFileSync(DATA_FILE, "utf-8");
-      return new Map(Object.entries(JSON.parse(data)));
+      const parsed = JSON.parse(data);
+      const map = new Map();
+      // Force lowercased keys for consistent matching
+      Object.entries(parsed).forEach(([key, val]) => {
+        map.set(key.toLowerCase(), val);
+      });
+      return map;
     }
   } catch (e) { console.error("Load error:", e); }
   return new Map();

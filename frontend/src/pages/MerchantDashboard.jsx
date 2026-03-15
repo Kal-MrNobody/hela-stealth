@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Contract, parseEther, formatEther } from "ethers";
 import { QRCode } from "react-qr-code";
-import { CONTRACTS, REGISTRY_ABI, ROUTER_ABI, HUSD_ABI, FEE_ABI } from "../config";
+import { CONTRACTS, REGISTRY_ABI, ROUTER_ABI, HUSD_ABI, FEE_ABI, API_BASE } from "../config";
 
 const TIERS = [
   { id: "std", name: "Standard", splits: 1, range: "N/A", security: 30, gas: "Low", icon: "⚡" },
@@ -71,113 +71,55 @@ export default function MerchantDashboard({ wallet }) {
     setLoading(false);
   };
 
-  // Create invoice
+  // Create invoice via Backend API (to ensure description persistence)
   const handleCreateInvoice = async () => {
-    if (!signer || !amount || !CONTRACTS.ROUTER || !CONTRACTS.HUSD || !CONTRACTS.FEE_MANAGER) {
-      showToast("❌ Missing contract configuration!", "error");
+    if (!signer || !amount || !account) {
+      showToast("❌ Missing information!", "error");
       return;
     }
     setLoading(true);
     try {
-      const router = new Contract(CONTRACTS.ROUTER, ROUTER_ABI, signer);
-      const husd   = new Contract(CONTRACTS.HUSD, HUSD_ABI, signer);
-      const feeMgr = new Contract(CONTRACTS.FEE_MANAGER, FEE_ABI, provider);
-
-      // Approve fee
-      const fee = await feeMgr.protocolFee();
-      console.log("Protocol fee:", fee.toString());
-      if (fee > 0n) {
-        const allowance = await husd.allowance(account, CONTRACTS.ROUTER);
-        console.log("Current allowance:", allowance.toString());
-        if (allowance < fee) {
-          console.log("Approving HUSD for fee...");
-          const approveTx = await husd.approve(CONTRACTS.ROUTER, parseEther("999999"));
-          await approveTx.wait();
-          console.log("Fee approval confirmed");
-        }
-      }
-
-      const amountWei = parseEther(amount);
-      console.log("Creating invoice for", amount, "HUSD...");
-      const tx = await router.createInvoice(amountWei);
-      console.log("TX hash:", tx.hash);
-      const receipt = await tx.wait();
-      console.log("TX confirmed! Logs count:", receipt.logs.length);
-
-      // Parse event to get invoiceId
-      let invoiceId = null;
-      for (const log of receipt.logs) {
-        try {
-          const parsed = router.interface.parseLog({ topics: log.topics, data: log.data });
-          console.log("Parsed log:", parsed?.name, parsed?.args);
-          if (parsed?.name === "InvoiceCreated") {
-            invoiceId = parsed.args.invoiceId;
-            console.log("Found invoiceId from event:", invoiceId);
-            break;
-          }
-        } catch (parseErr) {
-          console.log("Could not parse log (expected for non-Router events):", parseErr.message);
-        }
-      }
-
-      // Fallback: if event parsing didn't find the invoiceId, read it from the contract
-      if (!invoiceId) {
-        console.log("Event parsing failed, using fallback to read latest invoice...");
-        const routerRead = new Contract(CONTRACTS.ROUTER, ROUTER_ABI, provider);
-        const count = await routerRead.getMerchantInvoiceCount(account);
-        console.log("Merchant invoice count:", count.toString());
-        if (count > 0n) {
-          invoiceId = await routerRead.getMerchantInvoiceAt(account, count - 1n);
-          console.log("Got invoiceId from fallback:", invoiceId);
-        }
-      }
-
-      if (invoiceId) {
-        setLastInvoice({ id: invoiceId, amount, description });
+      showToast("⏳ Creating Invoice...", "info");
+      const resp = await fetch(`${API_BASE}/invoice/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          merchantAddress: account,
+          amount,
+          description
+        })
+      });
+      const data = await resp.json();
+      
+      if (data.success) {
+        setLastInvoice({ 
+          id: data.invoice.id, 
+          amount: data.invoice.amount, 
+          description: data.invoice.description 
+        });
         showToast("📄 Invoice created!");
+        setAmount("");
+        setDescription("");
         loadInvoices();
       } else {
-        console.error("Could not find invoiceId from event or fallback!");
-        showToast("⚠️ Invoice created on-chain but could not retrieve ID. Click Refresh.", "error");
+        throw new Error(data.error || "Failed to create invoice");
       }
-
-      setAmount("");
-      setDescription("");
     } catch (err) {
       console.error("Create invoice error:", err);
-      showToast("❌ " + (err.reason || err.message), "error");
+      showToast("❌ " + err.message, "error");
     }
     setLoading(false);
   };
 
-  // Load invoices
+  // Load invoices from Backend API (to include descriptions)
   const loadInvoices = async () => {
-    if (!account || !provider) return;
-    
-    // Strict address check to prevent ethers.js ENS lookup crash
-    const routerAddr = CONTRACTS.ROUTER;
-    if (!routerAddr || !routerAddr.startsWith("0x") || routerAddr.length !== 42) {
-      console.warn("Invalid Router address, skipping invoice load.");
-      return;
-    }
-
+    if (!account) return;
     try {
-      const router = new Contract(routerAddr, ROUTER_ABI, provider);
-      const count = await router.getMerchantInvoiceCount(account);
-      const items = [];
-      const statusMap = ["active", "paid", "claimed", "cancelled"];
-      for (let i = 0; i < Number(count); i++) {
-        const id = await router.getMerchantInvoiceAt(account, i);
-        const inv = await router.getInvoice(id);
-        items.push({
-          id,
-          amount: formatEther(inv.amount),
-          status: statusMap[Number(inv.status)],
-          payer: inv.payer,
-          createdAt: Number(inv.createdAt),
-        });
+      const resp = await fetch(`${API_BASE}/merchant/invoices/${account}`);
+      const data = await resp.json();
+      if (data.invoices) {
+        setInvoices(data.invoices);
       }
-      setInvoices(items.reverse());
     } catch (err) {
       console.error("Failed to load invoices:", err);
     }
