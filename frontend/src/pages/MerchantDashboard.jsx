@@ -25,6 +25,31 @@ export default function MerchantDashboard({ wallet }) {
   const [withdrawingInv, setWithdrawingInv] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [packetProgress, setPacketProgress] = useState(0);
+ 
+  const LOCAL_METADATA_KEY = "hela_stealth_metadata";
+ 
+  // Helper to save description locally as fallback
+  const saveLocalDescription = (id, desc) => {
+    if (!id || !desc) return;
+    try {
+      const existing = JSON.parse(localStorage.getItem(LOCAL_METADATA_KEY) || "{}");
+      existing[id.toLowerCase()] = desc;
+      localStorage.setItem(LOCAL_METADATA_KEY, JSON.stringify(existing));
+    } catch (e) {
+      console.warn("Local storage save failed:", e);
+    }
+  };
+ 
+  // Helper to get local description
+  const getLocalDescription = (id) => {
+    if (!id) return null;
+    try {
+      const existing = JSON.parse(localStorage.getItem(LOCAL_METADATA_KEY) || "{}");
+      return existing[id.toLowerCase()] || null;
+    } catch (e) {
+      return null;
+    }
+  };
 
   // Check config on mount
   useEffect(() => {
@@ -136,6 +161,9 @@ export default function MerchantDashboard({ wallet }) {
           console.warn("Metadata sync failed, but invoice created:", syncErr);
         }
 
+        // --- CACHE LOCALLY FOR DEMO RELIABILITY ---
+        saveLocalDescription(invoiceId, description);
+ 
         setLastInvoice({ id: invoiceId, amount, description });
         showToast("📄 Invoice created!");
         loadInvoices();
@@ -159,7 +187,12 @@ export default function MerchantDashboard({ wallet }) {
       const resp = await fetch(`${API_BASE}/merchant/invoices/${account}`);
       const data = await resp.json();
       if (data.invoices) {
-        setInvoices(data.invoices);
+        // Merge with local descriptions just in case backend is stateless
+        const enriched = data.invoices.map(inv => ({
+          ...inv,
+          description: inv.description || getLocalDescription(inv.id) || "—"
+        }));
+        setInvoices(enriched);
       }
     } catch (err) {
       console.error("Failed to load invoices:", err);

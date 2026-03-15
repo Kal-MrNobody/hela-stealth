@@ -108,7 +108,7 @@ function startEventListener() {
     // Router events
     router.on("PaymentProcessed", (invoiceId, payer, merchant, amount, timestamp, vault) => {
       console.log(`⚡ Payment detected: ${invoiceId} via vault ${vault}`);
-      const inv = invoiceStore.get(invoiceId);
+      const inv = invoiceStore.get(invoiceId.toLowerCase());
       if (inv) {
         inv.status = "paid";
         inv.payer = payer;
@@ -125,7 +125,7 @@ function startEventListener() {
     if (pool) {
       pool.on("DepositAdded", (invoiceId, vault, merchant, amount, event) => {
         console.log(`🔒 Deposit added to PrivacyPool for ${invoiceId} from vault ${vault}`);
-        const inv = invoiceStore.get(invoiceId);
+        const inv = invoiceStore.get(invoiceId.toLowerCase());
         if (inv) {
           inv.depositTxHash = event.log.transactionHash;
           saveStore();
@@ -134,7 +134,7 @@ function startEventListener() {
 
       pool.on("WithdrawalCompleted", (invoiceId, merchant, amount, event) => {
         console.log(`🏦 Merchant withdrew from PrivacyPool: ${invoiceId}`);
-        const inv = invoiceStore.get(invoiceId);
+        const inv = invoiceStore.get(invoiceId.toLowerCase());
         if (inv) {
           inv.status = "claimed";
           inv.withdrawalTxHash = event.log.transactionHash;
