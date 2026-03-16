@@ -7,7 +7,7 @@ HeLa Stealth is a privacy-first stablecoin payment gateway engineered for the **
 🚀 **Live Demo**: [hela-stealth.vercel.app](https://hela-stealth.vercel.app/)  
 📺 **Demo Video**: [YouTube](https://youtu.be/IbcwOlAH0rs)
 
-![HeLa Landing Page](C:\Users\risha\.gemini\antigravity\brain\3dda39d3-ba76-43d0-8223-e95083e6a228\hela_landing_page_final_1773542514094.png)
+![HeLa Landing Page](docs/assets/hero_banner.png)
 
 ---
 
@@ -33,7 +33,7 @@ The project is fully operational on the **HeLa Testnet**.
 3. **One-Chain Privacy**: Leverages HeLa's native privacy features on a single, intelligent blockchain.
 4. **Seamless UX**: Unified "Connect Wallet" flow and high-impact hero design.
 
-![Merchant Dashboard](C:\Users\risha\.gemini\antigravity\brain\3dda39d3-ba76-43d0-8223-e95083e6a228\merchant_dashboard_final_verify_1773542852945.png)
+![Merchant Dashboard](docs/assets/merchant_dashboard.png)
 
 ---
 
