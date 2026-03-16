@@ -4,6 +4,9 @@
 
 HeLa Stealth allows merchants to accept stablecoin payments with complete privacy. By generating one-time stealth payment addresses for every invoice, a merchant's main wallet transaction history remains shielded on public block explorers.
 
+🚀 **Live Demo**: [hela-stealth.vercel.app](https://hela-stealth.vercel.app/)  
+📺 **Demo Video**: [YouTube](https://youtu.be/IbcwOlAH0rs)
+
 ![HeLa Landing Page](C:\Users\risha\.gemini\antigravity\brain\3dda39d3-ba76-43d0-8223-e95083e6a228\hela_landing_page_final_1773542514094.png)
 
 ---
